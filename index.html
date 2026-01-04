@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Project Dashboard</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 10px;
+    width: 100%;
+}
+
+h1, h2, h3 {
+    margin: 15px 0;
+    font-size: 32px;
+    text-align: center;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    max-width: 1200px;
+    margin: 10px auto;
+    padding: 20px;
+    background: #007bff;
+    color: white;
+    border-radius: 8px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+}
+.btn:disabled {
+    background-color: #cccccc !important;
+    color: #666666 !important;
+    cursor: not-allowed;
+    border: 1px solid #999999;
+    opacity: 0.6;
+}
+/* ================= DAILY PRODUCTION MODULE (WIDE) ================= */
+
+#dailyProdSection {
+    width: 100% !important;
+    max-width: 1400px !important;
+    margin: 0 auto;
+}
+
+#dailyProdTableContainer {
+    width: 100%;
+    max-height: 75vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 3px solid #222;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+/* 4-Column Grid: Index, Loc, Product, Qty */
+.dp-row, .dp-header {
+    display: grid;
+    grid-template-columns: 0.6fr 1.2fr 4.7fr 3.5fr; 
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px;
+    border-bottom: 2px solid #ddd;
+    box-sizing: border-box;
+}
+
+.dp-header {
+    background: #222;
+    color: white;
+    font-weight: 900;
+    font-size: 22px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.dp-row {
+    font-size: 38px; /* Massive Font */
+    font-weight: 800;
+    line-height: 0.95; /* Vertical compression for 'tall' look */
+    letter-spacing: -1px;
+    color: #000;
+}
+.dp-qty-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.dp-btn-spin {
+    width: 75px; 
+    height: 75px;
+    font-size: 45px;
+    font-weight: 900;
+    border-radius: 12px;
+    border: 3px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.btn-plus { color: #2e7d32; border-color: #2e7d32; background: #f1f8e9; }
+.btn-minus { color: #c62828; border-color: #c62828; background: #ffebee; }
+
+.dp-qty-display {
+    min-width: 85px;
+    font-size: 42px;
+    font-weight: 900;
+    text-align: center;
+    background: #eee;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.dp-qty-active {
+    background: #fff8b2 !important;
+    border: 2px solid #ffd700;
+}
+
+@media (max-width: 768px) {
+    .dp-header, .dp-row {
+        grid-template-columns: 0.5fr 1.2fr 3.8fr 4.5fr;
+        font-size: 24px;
+        padding: 10px 5px;
+    }
+    .dp-btn-spin { width: 65px; height: 65px; font-size: 38px; }
+}
+</style>
+</head>
+
+<body>
+
+<h1>Project Dashboard</h1>
+
+<button class="btn" onclick="loadData()">Start</button>
+<button class="btn" onclick="showDailyProd()">Update Daily Production</button>
+
+<div id="output"></div>
+<div id="dailyProdSection" style="display:none; margin-top:20px; max-width:500px; margin-left:auto; margin-right:auto;">
+
+    <div style="
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    position: sticky; 
+    top: 0; 
+    z-index: 1000; 
+    background: #f4f4f4; 
+    padding: 10px 0;
+    margin-bottom: 10px;
+">
+    <h2 style="margin: 0; font-size: 28px;">Update Daily Production</h2>
+    
+    <div id="stickyTotalContainer" style="
+        background: #1a1a1a; 
+        color: #00ff41; 
+        padding: 8px 20px; 
+        border-radius: 8px; 
+        text-align: right;
+        box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+        border: 2px solid #333;
+    ">
+        <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #aaa; letter-spacing: 1px;">Total Sum</div>
+        <div id="grandTotalDisplay" style="
+            font-size: 36px; 
+            font-weight: 900; 
+            font-family: 'Arial Black', sans-serif;
+            line-height: 1;
+        ">0</div>
+    </div>
+</div>
+
+    <input 
+        id="dailyProdSearch" 
+        type="text" 
+        placeholder="Search product..." 
+        style="width:100%; padding:10px; font-size:16px; margin-bottom:10px;"
+    />
+
+    <div id="dailyProdTableContainer"
+         style="max-height:60vh; overflow-y:auto; background:#fafafa; border:1px solid #ccc; border-radius:6px; padding:8px;">
+    </div>
+
+    <div style="margin-top:15px; text-align:left; background:#f5f5f5; padding:10px; border-radius:6px;">
+        <h3>Add New Entry</h3>
+        <input id="dpNewLocation" type="text" placeholder="Location" style="width:100%; padding:8px; margin-bottom:6px;">
+        <input id="dpNewProduct" type="text" placeholder="Product name" style="width:100%; padding:8px; margin-bottom:6px;">
+        <input id="dpNewQty" type="number" placeholder="Qty" min="0" style="width:100%; padding:8px; margin-bottom:6px;">
+        <button id="dpAddRowBtn" class="btn" style="margin-top:5px;">+ Add</button>
+    </div>
+
+    <button id="dpCopyBtn" class="btn" style="margin-top:15px;">Copy Updated Data</button>
+    <button class="btn" style="background:#555;" onclick="backToMain()">Back</button>
+
+</div>
+<script>
+// Google Sheet JSON endpoint
+const sheetURL = "https://docs.google.com/spreadsheets/d/1EgAGWL_NL0Hqi4r0S3LPGKRYsYRkpab_sXTjxRHJKhg/gviz/tq?tqx=out:json";
+let allRows = [];
+let projects = [];
+
+// Convert Google Drive preview link → direct PDF link
+function convertDriveLink(url) {
+    if (!url) return "";
+    if (url.includes("uc?export=download")) return url;
+
+    const match = url.match(/\/d\/(.*?)\//);
+    if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+    }
+    return url;
+}
+
+function loadData() {
+    const output = document.getElementById("output");
+    output.textContent = "Loading data...";
+
+    fetch(sheetURL)
+        .then(res => res.text())
+        .then(text => {
+            const json = JSON.parse(text.substring(47, text.length - 2));
+            const rows = json.table.rows;
+
+            allRows = rows.map(r => ({
+                project:  r.c[0]?.v || "",
+                building: r.c[1]?.v || "",
+                floor:    r.c[2]?.v || "",
+                status:   r.c[3]?.v || "",
+                prod:     r.c[4]?.v || "",
+                del:      r.c[5]?.v || "",
+                erec:     r.c[6]?.v || "",
+                ProductionPDF: r.c[7]?.v || "",
+                DeliveryPDF:   r.c[8]?.v || "",
+                ErectionPDF:   r.c[9]?.v || ""
+            }));
+
+            projects = [...new Set(allRows.map(r => r.project))];
+
+            renderProjectList();
+        })
+        .catch(err => {
+            output.textContent =
+                "Error loading data.\nCheck sharing and publish settings.";
+        });
+}
+
+function renderProjectList() {
+    const output = document.getElementById("output");
+    output.innerHTML = "<h2>Select a Project</h2>";
+
+    projects.forEach(name => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.textContent = name;
+        btn.onclick = () => openProject(name);
+        output.appendChild(btn);
+    });
+}
+
+function openProject(projectName) {
+    const output = document.getElementById("output");
+
+    const rowsForProject = allRows.filter(r => r.project === projectName);
+    const buildings = [...new Set(rowsForProject.map(r => r.building))];
+
+    output.innerHTML = `<h2>${projectName}</h2><h3>Select Building</h3>`;
+
+    buildings.forEach(b => {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+        btn.textContent = b;
+        btn.onclick = () => openBuilding(projectName, b);
+        output.appendChild(btn);
+    });
+
+    const back = document.createElement("button");
+    back.className = "btn";
+    back.style.background = "#555";
+    back.style.display = "block";
+    back.style.margin = "20px auto";
+    back.textContent = "Back";
+    back.onclick = () => renderProjectList();
+    output.appendChild(back);
+}
+
+function openBuilding(projectName, buildingName) {
+    const output = document.getElementById("output");
+
+    const rowsForBuilding = allRows.filter(
+        r => r.project === projectName && r.building === buildingName
+    );
+
+    const floors = [...new Set(rowsForBuilding.map(r => r.floor))];
+
+    output.innerHTML =
+        `<h2>${projectName}</h2>
+         <h3>${buildingName}</h3>
+         <h3>Select Floor</h3>`;
+
+    floors.forEach(f => {
+        const row = rowsForBuilding.find(r => r.floor === f);
+
+        const prod = row.prod || "";
+        const del  = row.del  || "";
+        const erec = row.erec || "";
+
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.style.display = "block";
+        btn.style.margin = "10px auto";
+
+        btn.textContent = `${f} — Prod ${prod}% | Del ${del}% | Erec ${erec}%`;
+
+        btn.onclick = () => openFloor(projectName, buildingName, f);
+        output.appendChild(btn);
+    });
+
+    const back = document.createElement("button");
+    back.className = "btn";
+    back.style.background = "#555";
+    back.style.display = "block";
+    back.style.margin = "20px auto";
+    back.textContent = "Back";
+    back.onclick = () => openProject(projectName);
+    output.appendChild(back);
+}
+
+function openFloor(projectName, buildingName, floorName) {
+    const output = document.getElementById("output");
+
+    const row = allRows.find(
+        r =>
+            r.project === projectName &&
+            r.building === buildingName &&
+            r.floor === floorName
+    );
+
+    const prod = row.prod || "0";
+    const del  = row.del  || "0";
+    const erec = row.erec || "0";
+
+    const prodPDF = convertDriveLink(row.ProductionPDF);
+    const delPDF  = convertDriveLink(row.DeliveryPDF);
+    const erecPDF = convertDriveLink(row.ErectionPDF);
+
+    output.innerHTML = `
+        <h2>${projectName}</h2>
+        <h3>${buildingName}</h3>
+        <h3>${floorName}</h3>
+
+        <p style="text-align: center; font-size: 18px; margin: 20px 0;">
+            Production: ${prod}% | Delivery: ${del}% | Erection: ${erec}%
+        </p>
+
+        <h3 style="text-align: center; margin-top: 30px;">View Documents</h3>
+    `;
+
+    // Production PDF Button
+    const btn1 = document.createElement("button");
+    btn1.className = "btn";
+    btn1.textContent = prodPDF ? "Open Production documents" : "Production: Data not available";
+    btn1.disabled = !prodPDF;
+    if (prodPDF) btn1.onclick = () => window.open(prodPDF, "_blank");
+    output.appendChild(btn1);
+
+    // Delivery PDF Button
+    const btn2 = document.createElement("button");
+    btn2.className = "btn";
+    btn2.textContent = delPDF ? "Open Delivery documents" : "Delivery: Data not available";
+    btn2.disabled = !delPDF;
+    if (delPDF) btn2.onclick = () => window.open(delPDF, "_blank");
+    output.appendChild(btn2);
+
+    // Erection PDF Button
+    const btn3 = document.createElement("button");
+    btn3.className = "btn";
+    btn3.textContent = erecPDF ? "Open Erection documents" : "Erection: Data not available";
+    btn3.disabled = !erecPDF;
+    if (erecPDF) btn3.onclick = () => window.open(erecPDF, "_blank");
+    output.appendChild(btn3);
+
+    // Back Button
+    const back = document.createElement("button");
+    back.className = "btn";
+    back.style.background = "#555";
+    back.style.marginTop = "20px";
+    back.textContent = "Back";
+    back.onclick = () => openBuilding(projectName, buildingName);
+    output.appendChild(back);
+}
+// ================= DAILY PRODUCTION MODULE =================
+
+// Sheet tab 2: DailyProd
+const dailyProdSheetURL =
+  "https://docs.google.com/spreadsheets/d/1EgAGWL_NL0Hqi4r0S3LPGKRYsYRkpab_sXTjxRHJKhg/gviz/tq?sheet=DailyProd&tq=select%20*";
+
+let dailyProdData = [];
+
+// Show Daily Production page
+function showDailyProd() {
+    document.getElementById("output").style.display = "none";
+    document.getElementById("dailyProdSection").style.display = "block";
+    loadDailyProdData();
+}
+
+// Back to main dashboard
+function backToMain() {
+    document.getElementById("dailyProdSection").style.display = "none";
+    document.getElementById("output").style.display = "block";
+}
+
+// Load DailyProd data
+function loadDailyProdData() {
+    fetch(dailyProdSheetURL)
+        .then(res => res.text())
+        .then(text => {
+            const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+            const table = json.table;
+
+            dailyProdData = [];
+
+            table.rows.forEach(r => {
+                const loc = r.c[1]?.v || "";   // Column B
+                const prod = r.c[2]?.v || "";  // Column C
+                const qty = Number(r.c[3]?.v || 0); // Column D
+
+                if (loc || prod) {
+                    dailyProdData.push({ location: loc, product: prod, qty });
+                }
+            });
+
+            renderDailyProdTable();
+        });
+}
+function addNewEntry() {
+    const loc = document.getElementById("newLoc").value.trim();
+    const prod = document.getElementById("newProd").value.trim();
+    const qty = parseInt(document.getElementById("newQty").value) || 0;
+
+    if (loc && prod) {
+        // 1. Calculate the new index
+        const newIndex = dailyProdData.length + 1;
+        
+        // 2. Add to local list
+        dailyProdData.push({ location: loc, product: prod, qty: qty });
+        renderDailyProdTable();
+
+        // 3. THE FIX: Call save function with "append"
+        // This will now make "Sending Data: {task: 'append'...}" appear in your console
+        saveQtyToSheet(loc, prod, qty, newIndex, "append");
+
+        // 4. Reset Inputs
+        document.getElementById("newLoc").value = "";
+        document.getElementById("newProd").value = "";
+        document.getElementById("newQty").value = "0";
+    } else {
+        alert("Please enter both Location and Product Name");
+    }
+}
+// Render table
+function renderDailyProdTable(filter = "") {
+    const container = document.getElementById("dailyProdTableContainer");
+    container.innerHTML = "";
+
+    // ... (header code remains the same) ...
+
+    dailyProdData.forEach((item, index) => {
+        if (filter && !item.product.toLowerCase().includes(filter.toLowerCase())) return;
+
+        const row = document.createElement("div");
+        row.className = "dp-row";
+        
+        // THE CHANGE: Only add the class if qty is strictly greater than 0
+        const activeClass = (Number(item.qty) > 0) ? "dp-qty-active" : "";
+
+        row.innerHTML = `
+            <div style="font-size: 0.5em; color: #888; font-weight:bold;">${index + 1}</div>
+            <div style="font-size: 0.6em; color: #444; font-weight: 900; line-height: 0.8;">${item.location}</div>
+            <div style="word-break: break-word; line-height: 1.0; font-weight: 800;">${item.product}</div>
+            <div class="dp-qty-container">
+                <button class="dp-btn-spin btn-plus" onclick="changeQty(${index}, 1)">+</button>
+                <span id="qty_${index}" class="dp-qty-display ${activeClass}">${item.qty}</span>
+                <button class="dp-btn-spin btn-minus" onclick="changeQty(${index}, -1)">−</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+    updateGrandTotal();
+}
+// Replace this with your NEW Web App URL from Step 2
+const scriptURL = "https://script.google.com/macros/s/AKfycbxtczAySjW65UwPo3ILmYUHp6bvBPdDQyxmN84_l4RFrHOrGq1lbaWYkhFzRQVs1pzeEQ/exec";
+
+// Ensure 'task' is the last parameter here!
+function saveQtyToSheet(loc, prod, qty, index, task) {
+    const data = {
+        task: task, // This tells Google whether to 'append' or 'update'
+        index: index,
+        location: loc,
+        product: prod,
+        qty: qty
+    };
+
+    console.log("Sending Data:", data); // This helps you see what's happening
+
+    fetch(scriptURL, {
+        method: "POST",
+        mode: "no-cors",
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+}
+// Change qty
+function changeQty(index, delta) {
+    const item = dailyProdData[index];
+    item.qty += delta;
+    if (item.qty < 0) item.qty = 0;
+
+    const qtyDisplay = document.getElementById(`qty_${index}`);
+    qtyDisplay.innerText = item.qty;
+    
+    // THE CHANGE: Update the highlight class live
+    if (item.qty > 0) {
+        qtyDisplay.classList.add("dp-qty-active");
+    } else {
+        qtyDisplay.classList.remove("dp-qty-active");
+    }
+
+    updateGrandTotal();
+    saveQtyToSheet(item.location, item.product, item.qty, index + 1, "update");
+}
+
+// Add new row - UPDATED TO SEND TO GOOGLE
+document.getElementById("dpAddRowBtn").addEventListener("click", () => {
+    const loc = document.getElementById("dpNewLocation").value.trim();
+    const prod = document.getElementById("dpNewProduct").value.trim();
+    const qty = Number(document.getElementById("dpNewQty").value || 0);
+
+    if (!loc || !prod) {
+        alert("Enter Location and Product");
+        return;
+    }
+    updateGrandTotal();
+    // 1. Calculate next index
+    const newIndex = dailyProdData.length + 1;
+
+    // 2. Update local UI
+    dailyProdData.push({ location: loc, product: prod, qty: qty });
+    renderDailyProdTable();
+
+    // 3. THE MISSING LINK: Send to Google Sheet
+    // This makes the "Sending Data" message appear in your console
+    saveQtyToSheet(loc, prod, qty, newIndex, "append");
+
+    // 4. Clear inputs
+    document.getElementById("dpNewLocation").value = "";
+    document.getElementById("dpNewProduct").value = "";
+    document.getElementById("dpNewQty").value = "";
+});
+
+// Copy to clipboard
+document.getElementById("dpCopyBtn").addEventListener("click", () => {
+    let lines = ["Location\tProduct Name\tQty"];
+
+    dailyProdData.forEach(r => {
+        lines.push(`${r.location}\t${r.product}\t${r.qty}`);
+    });
+
+    navigator.clipboard.writeText(lines.join("\n"))
+        .then(() => alert("Copied. Paste into Excel."))
+        .catch(() => alert("Copy failed."));
+});
+// Add Search Functionality
+document.getElementById("dailyProdSearch").addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    renderDailyProdTable(searchTerm); // This calls the existing filter logic
+});
+
+function updateGrandTotal() {
+    // Sums up every 'qty' in your data array
+    const total = dailyProdData.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0);
+    
+    const display = document.getElementById("grandTotalDisplay");
+    if (display) {
+        display.innerText = total.toLocaleString(); // Adds commas like 1,250
+        
+        // Brief pulse effect to show it updated
+        display.style.color = "#fff";
+        setTimeout(() => { display.style.color = "#00ff41"; }, 150);
+    }
+}
+</script>
+</body>
+</html>
