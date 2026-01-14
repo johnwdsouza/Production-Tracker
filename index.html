@@ -12,13 +12,12 @@ body {
     margin: 0; 
     padding: 20px; 
     display: flex;
-    justify-content: center; /* Centers the app on desktop */
+    justify-content: center; 
 }
 
-/* Main Container - This creates the "Zoom" feel on Desktop */
 #dailyProdSection { 
     width: 100%; 
-    max-width: 900px; /* Limits width to keep it looking like the mobile/zoom view */
+    max-width: 900px; 
     background: #fff;
     padding: 20px;
     border-radius: 15px;
@@ -41,7 +40,6 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
     border: none; 
 }
 
-/* Filter Bar */
 .filter-bar {
     display: flex;
     gap: 12px;
@@ -68,7 +66,6 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
 }
 .qc-filter-btn.active { background: #dc3545; color: white; border-color: #a71d2a; }
 
-/* Table Container with Scroll */
 #dailyProdTableContainer { 
     width: 100%; 
     max-height: 65vh; 
@@ -78,10 +75,9 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
     border-radius: 12px; 
 }
 
-/* Row Alignment & Zoomed Font */
 .dp-row, .dp-header {
     display: grid;
-    grid-template-columns: 0.5fr 1.0fr 4.5fr 3.5fr; /* Restored older ratios */
+    grid-template-columns: 0.5fr 1.0fr 4.5fr 3.5fr; 
     align-items: center;
     gap: 10px;
     padding: 15px 10px;
@@ -101,13 +97,12 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
 .dp-header div:last-child { text-align: center; }
 
 .dp-row { 
-    font-size: 36px; /* Restored massive font */
+    font-size: 36px; 
     font-weight: 800; 
     color: #000; 
     line-height: 1.0; 
 }
 
-/* QC & Spinners */
 .qc-check { font-size: 40px; cursor: pointer; margin-right: 15px; }
 .qc-active { color: #28a745; }
 .qc-inactive { color: #ccc; }
@@ -141,7 +136,6 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
 .dp-qty-active { background: #fff8b2 !important; border: 3px solid #ffd700; }
 .qty-qc-passed { background-color: #28a745 !important; color: white !important; }
 
-/* Add Entry Section */
 .add-entry-box {
     margin-top: 25px; 
     background: #f9f9f9; 
@@ -157,6 +151,21 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
     border-radius: 8px; 
     border: 1px solid #bbb;
     box-sizing: border-box;
+}
+
+/* Voice Button style */
+.voice-btn {
+    width: 70px;
+    height: 55px;
+    font-size: 30px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @media (max-width: 600px) {
@@ -189,7 +198,12 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
     <div class="add-entry-box">
         <h3 style="margin-top:0;">Add Entry</h3>
         <input id="dpNewLocation" type="text" placeholder="Location">
-        <input id="dpNewProduct" type="text" placeholder="Product Name">
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input id="dpNewProduct" type="text" placeholder="Product Name" style="flex: 1; margin-bottom: 0;">
+            <button onclick="startVoiceRecognition(event)" class="voice-btn">🎤</button>
+        </div>
+
         <input id="dpNewQty" type="number" placeholder="Qty">
         <button class="btn" style="background:#28a745; margin:0;" onclick="addNewRow()">+ Add to Sheet</button>
     </div>
@@ -198,7 +212,6 @@ h1 { margin: 15px 0; font-size: 38px; text-align: center; font-weight: 900; }
 </div>
 
 <script>
-/* JAVASCRIPT LOGIC REMAINS THE SAME AS PREVIOUS (INDEX-FIXED) */
 const dailyProdSheetURL = "https://docs.google.com/spreadsheets/d/1EgAGWL_NL0Hqi4r0S3LPGKRYsYRkpab_sXTjxRHJKhg/gviz/tq?sheet=DailyProd&tq=select%20*";
 const scriptURL = "https://script.google.com/macros/s/AKfycbzdMmVgH-d21z8JNbLXEDDJS8HfgHcGoB09vSjhvPX1dTViHVpwmBOa0kxsuEWAKe6mWA/exec";
 
@@ -218,6 +231,62 @@ function loadDailyProdData() {
     });
 }
 
+// Voice Recognition Logic
+function startVoiceRecognition(event) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Voice not supported on this browser.");
+    
+    const recognition = new SpeechRecognition();
+    const btn = event.currentTarget;
+    const input = document.getElementById("dpNewProduct");
+    
+    btn.innerHTML = "🔊";
+    btn.style.background = "#ff4d4d";
+
+    recognition.onresult = (e) => {
+        let transcript = e.results[0][0].transcript.toLowerCase();
+
+        // 1. Remove trailing periods
+        if (transcript.endsWith('.')) { transcript = transcript.slice(0, -1); }
+
+        // 2. PHONETIC FIXES (Before removing spaces)
+        transcript = transcript.replace(/pretty too|pretty to|pt2|pt 2|v t|vee tee/g, "VT");
+        
+        // Fix for EI sounds (If browser hears "I twenty" instead of "EI twenty")
+        transcript = transcript.replace(/i 20|i20/g, "EI20");
+        transcript = transcript.replace(/i 30|i30/g, "EI30");
+        transcript = transcript.replace(/i 60|i60/g, "EI60");
+
+        // Common number sounds
+        transcript = transcript.replace(/zero/g, "0");
+        transcript = transcript.replace(/one/g, "1");
+        transcript = transcript.replace(/too|to|two/g, "2");
+        transcript = transcript.replace(/three/g, "3");
+        transcript = transcript.replace(/four|for/g, "4");
+
+        // 3. TRANSLATION RULES
+        transcript = transcript.replace(/dash|hyphen|minus/g, "-");
+        transcript = transcript.replace(/ayai|ai|eye|a i/g, "EI");
+        transcript = transcript.replace(/ayel|il|i l|ail/g, "IL");
+        
+        // 4. Clean up spaces and convert to UPPERCASE
+        transcript = transcript.replace(/\s+/g, '').toUpperCase();
+
+        // 5. Append to existing value
+        input.value = input.value + transcript;
+        
+        btn.innerHTML = "🎤";
+        btn.style.background = "#6c757d";
+    };
+
+    recognition.onend = () => {
+        btn.innerHTML = "🎤";
+        btn.style.background = "#6c757d";
+    };
+
+    recognition.start();
+}
+
 function togglePendingFilter() {
     showOnlyPending = !showOnlyPending;
     document.getElementById("pendingQCBtn").classList.toggle("active", showOnlyPending);
@@ -234,6 +303,8 @@ function renderDailyProdTable(filter = "") {
 
     dailyProdData.forEach((item, originalIndex) => {
         if (filter && !item.product.toLowerCase().includes(filter.toLowerCase())) return;
+        
+        // Logical rule: if "Pending QC" is on, hide approved items or zero-qty items
         if (showOnlyPending && (item.qcChecked || item.qty === 0)) return;
 
         const isQtyActive = (item.qty > 0);
@@ -307,3 +378,4 @@ function updateGrandTotal() {
 </script>
 </body>
 </html>
+
